@@ -164,7 +164,7 @@ void inQueue (int procID) {
 }
 
 int deQueue () {
-	if (waiting->head == NULL)
+	if (emptyQueue())
 		return -1;
 
 	Node *oldHead = waiting->head;
@@ -181,6 +181,12 @@ int deQueue () {
 
 	free(oldHead);
 	return headID;
+}
+
+int queueHead() {
+	if (emptyQueue())
+		return -1;
+	return waiting->head->id;
 }
 
 void printQueue() {

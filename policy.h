@@ -54,11 +54,13 @@ void printInfo(int procNum);
 void FIFO(int procNum);
 void SJF(int procNum);
 void RR(int ProcNum);
+void PSJF(int ProcNum);
 
 void initQueue();
 bool emptyQueue();
 void inQueue(int procID);
 int deQueue();
+int queueHead();
 void printQueue();
 
 void adjustHeadPriority();

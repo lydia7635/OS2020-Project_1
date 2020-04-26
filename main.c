@@ -28,8 +28,8 @@ int main() {
 
 	if (strncmp(policy, "FIFO", 4) == 0)
 		FIFO(procNum);
-	/*else if (strncmp(policy, "PSJF", 4) == 0)
-		PSJF(procNum);*/
+	else if (strncmp(policy, "PSJF", 4) == 0)
+		PSJF(procNum);
 	else if (strncmp(policy, "RR", 2) == 0)
 		RR(procNum);
 	else

@@ -11,7 +11,7 @@
 
 #include "policy.h"
 
-void SJF(int procNum) {
+void PSJF(int procNum) {
 
 	initQueue();
 	
@@ -48,6 +48,17 @@ void SJF(int procNum) {
 #ifdef DEBUG
 			printQueue();
 #endif
+		}
+
+		if (!emptyQueue() && runningID != -1
+			&& proc[runningID]->exec > proc[queueHead()]->exec) {
+			setPriority(proc[runningID]->pid, LOW_PRIORITY);
+			inQueue(runningID);
+
+			runningID = deQueue();
+			setPriority(proc[runningID]->pid, HIGH_PRIORITY);
+			adjustSJF();
+			adjustHeadPriority();
 		}
 		
 		if (!emptyQueue() && runningID == -1) {	// we can run new process in CPU

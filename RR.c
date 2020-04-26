@@ -84,13 +84,14 @@ void RR(int procNum) {
 		unitTime();
 
 #ifdef DEBUG
-		if (time % 100 == 0) fprintf(stderr, "[%d] time = %d, accumT = %d, finish = %d\n", getpid(), time, accumQuantum, finishNum);
+		if (time % 100 == 0)
+			fprintf(stderr, "[%d] time = %d, accumT = %d, finish = %d\n", getpid(), time, accumQuantum, finishNum);
 #endif
 
 		if (runningID != -1)
 			++accumQuantum;
 	}
-	// waitProcess(procNum);
+
 	printInfo(procNum);
 
 	return;
