@@ -53,6 +53,7 @@ void printInfo(int procNum);
 
 void FIFO(int procNum);
 void SJF(int procNum);
+void RR(int ProcNum);
 
 void initQueue();
 bool emptyQueue();

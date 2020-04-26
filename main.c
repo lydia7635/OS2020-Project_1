@@ -29,9 +29,9 @@ int main() {
 	if (strncmp(policy, "FIFO", 4) == 0)
 		FIFO(procNum);
 	/*else if (strncmp(policy, "PSJF", 4) == 0)
-		PSJF(proc, procNum);
+		PSJF(procNum);*/
 	else if (strncmp(policy, "RR", 2) == 0)
-		RR(proc, procNum);*/
+		RR(procNum);
 	else
 		SJF(procNum);
 	return 0;
