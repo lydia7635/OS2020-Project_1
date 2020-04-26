@@ -27,6 +27,10 @@ void FIFO(int procNum) {
 			++createdNum;
 		}
 		unitTime();
+#ifdef DEBUG
+		if (time % 100 == 0)
+			fprintf(stderr, "[%d] time = %d\n", getpid(), time);
+#endif
 	}
 	waitProcess(procNum);
 

@@ -66,4 +66,7 @@ void printQueue();
 void adjustHeadPriority();
 void adjustSJF ();
 
+pid_t callBarrier();
+void removeBarrier(pid_t barrierPid);
+
 #endif

@@ -26,6 +26,8 @@ int main() {
 	setCPU(0, 0);
 	setPriority(getpid(), 90);
 
+	pid_t barrierPid = callBarrier();
+
 	if (strncmp(policy, "FIFO", 4) == 0)
 		FIFO(procNum);
 	else if (strncmp(policy, "PSJF", 4) == 0)
@@ -34,5 +36,8 @@ int main() {
 		RR(procNum);
 	else
 		SJF(procNum);
+
+	removeBarrier(barrierPid);
+
 	return 0;
 }

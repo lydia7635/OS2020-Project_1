@@ -96,6 +96,7 @@ void createChild (int procID, int priority) {
 
 	if(cpid == 0) {	// child process
 		pid_t mypid = getpid();
+		setCPU(mypid, 1);
 #ifdef DEBUG
 		fprintf(stderr, "[%d] just fork\n", mypid);
 #endif
@@ -221,5 +222,32 @@ void adjustSJF () {
 			ptr = ptr->pre;
 		}
 	}
+	return;
+}
+
+pid_t callBarrier () {
+	pid_t cpid = fork();
+
+	if(cpid == 0) {	// child process
+		pid_t mypid = getpid();
+		setCPU(mypid, 1);
+		
+		execl("./barrier", "./barrier", (char *)0);
+#ifdef DEBUG
+		fprintf(stderr, "[%d] execl failed: %d\n", mypid, errno);
+		perror("execl");
+#endif
+		exit(EXIT_FAILURE);
+	}
+	else {	// schedule process
+		setPriority(cpid, 20);
+		setCPU(cpid, 1);
+	}
+	return cpid;
+}
+
+void removeBarrier (pid_t barrierID) {
+	kill(barrierID, SIGKILL);
+	waitpid(barrierID, NULL, 0);
 	return;
 }
