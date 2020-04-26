@@ -11,9 +11,9 @@
 
 #include "policy.h"
 
-void FIFO(Proc *proc[], int procNum) {
+void FIFO(int procNum) {
 
-	sortReady(proc, procNum);
+	sortReady(procNum);
 #ifdef DEBUG
 	for(int i = 0; i < procNum; i++)
 		printf("--%s %d %d\n", proc[i]->name, proc[i]->ready, proc[i]->exec);
@@ -23,14 +23,14 @@ void FIFO(Proc *proc[], int procNum) {
 
 	for (int time = 0; createdNum < procNum; ++time) {
 		while (createdNum < procNum && time == proc[createdNum]->ready) {
-			createChild(proc, createdNum, 99 - createdNum);
+			createChild(createdNum, 99 - createdNum);
 			++createdNum;
 		}
 		unitTime();
 	}
 	waitProcess(procNum);
 
-	printInfo(proc, procNum);
+	printInfo(procNum);
 
 	return;
 }

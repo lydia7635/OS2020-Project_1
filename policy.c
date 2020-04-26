@@ -8,32 +8,53 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <signal.h>
+#include <errno.h>
 
 #include "policy.h"
 
-void swap (Proc **a, Proc **b) {
-	Proc *temp = *a;
-	*a = *b;
-	*b = temp;
+int runningID = -1;	// no process is running
+int finishNum = 0;
+
+void childHandler(int signo) {
+	finishNum++;
+	runningID = -1;
+	wait(NULL);
 	return;
 }
 
-void sortReady (Proc *proc[], int procNum) {
+void setSighandler(int signo) {
+	struct sigaction act;
+	act.sa_flags = 0;
+	act.sa_handler = childHandler;
+	sigfillset(&act.sa_mask);
+	sigaction(signo, &act, NULL);
+	return;
+}
+
+void swapProc (int a, int b) {
+	Proc *temp = proc[a];
+	proc[a] = proc[b];
+	proc[b] = temp;
+	return;
+}
+
+void sortReady (int procNum) {
 	for(int i = procNum - 1; i > 0; --i) {
 		for(int j = 0; j < i; ++j) {
 			if(proc[j]->ready > proc[j + 1]->ready) {
-				swap(&proc[j], &proc[j + 1]);
+				swapProc(j, j + 1);
 			}
 		}
 	}
 	return;
 }
 
-void sortExec (Proc *proc[], int procNum) {
+void sortExec (int procNum) {
 	for(int i = procNum - 1; i > 0; --i) {
 		for(int j = 0; j < i; ++j) {
 			if(proc[j]->exec > proc[j + 1]->exec) {
-				swap(&proc[j], &proc[j + 1]);
+				swapProc(j, j + 1);
 			}
 		}
 	}
@@ -52,18 +73,15 @@ void setPriority (pid_t cpid, int priority) {
 	struct sched_param param;
 	param.sched_priority = priority;
 	int work = sched_setscheduler(cpid, SCHED_FIFO, &param);
-	sched_getparam(cpid, &param);
-	fprintf(stderr, "[%d] sched: %d\n", cpid, param.sched_priority);
-	//setpriority(PRIO_PROCESS, cpid, priority);
-	return;
-}
+#ifdef DEBUG
+	struct sched_param param2;
+	sched_getparam(cpid, &param2);
+	fprintf(stderr, "[%d] sched: %d\n", cpid, param2.sched_priority);
+#endif
 
-void adjustHeadPriority (Proc *proc[]) {
-	if (!emptyQueue()) {
-		setPriority(proc[qwait[qHead]]->pid, MID_PRIORITY);
-		if(qHead != qTail)
-			setPriority(proc[qwait[qHead + 1]]->pid, LOW_PRIORITY);
-	}
+	if(priority == LOW_PRIORITY)
+		sched_setscheduler(cpid, SCHED_IDLE, NULL);
+	//setpriority(PRIO_PROCESS, cpid, priority);
 	return;
 }
 
@@ -73,18 +91,24 @@ void unitTime () {
 	return;
 }
 
-void createChild (Proc *proc[], int procID, int priority) {
-	pid_t cpid;
+void createChild (int procID, int priority) {
+	pid_t cpid = fork();
 
-	if((cpid = fork()) == 0) {	// child process
-		cpid = getpid();
-		fprintf(stderr, "[%d] just fork\n", cpid);
+	if(cpid == 0) {	// child process
+		pid_t mypid = getpid();
+#ifdef DEBUG
+		fprintf(stderr, "[%d] just fork\n", mypid);
+#endif
 		char cpidStr[16], execStr[16];
-		sprintf(cpidStr, "%d\n", cpid);
+		sprintf(cpidStr, "%d\n", mypid);
 		sprintf(execStr, "%d\n", proc[procID]->exec);
 
 		execl("./child", "./child", cpidStr, execStr, (char *)0);
-		exit(0);
+#ifdef DEBUG
+		fprintf(stderr, "[%d] execl failed: %d\n", mypid, errno);
+		perror("execl");
+#endif
+		exit(EXIT_FAILURE);
 	}
 	else {	// schedule process
 		proc[procID]->pid = cpid;
@@ -104,59 +128,91 @@ bool childEnd (int runEnd, int time) {
 	return (runEnd <= time);
 }
 
-void printInfo (Proc *proc[], int procNum) {
+void printInfo (int procNum) {
 	for(int i = 0; i < procNum; ++i)
 		printf("%s %d\n", proc[i]->name, proc[i]->pid);
 	return;
 }
 
 void initQueue () {
-	qHead = -1;
-	qTail = -1;
+	waiting = (Queue *)malloc(sizeof(Queue));
+	waiting->head = NULL;
+	waiting->tail = NULL;
 	return;
 }
 
 bool emptyQueue () {
-	return (qHead == -1);
+	return (waiting->head == NULL);
 }
 
 void inQueue (int procID) {
-	if(qHead == -1) {
-		qHead = 0;
-		qTail = 0;
-		qwait[0] = procID;
+	Node *newNode = (Node *)malloc(sizeof(Node));
+	newNode->id = procID;
+	newNode->next = NULL;
+
+	if (waiting->head == NULL) {
+		waiting->head = newNode;
+		waiting->tail = newNode;
+		newNode->pre = NULL;
 	}
 	else {
-		++qTail;
-		qwait[qTail] = procID;
+		newNode->pre = waiting->tail;
+		waiting->tail->next = newNode;
+		waiting->tail = newNode;
 	}
 	return;
 }
 
 int deQueue () {
-	if (qHead == -1)
+	if (waiting->head == NULL)
 		return -1;
-	int headID = qwait[qHead];
 
-	if(qHead == qTail) {
-		qHead = -1;
-		qTail = -1;
+	Node *oldHead = waiting->head;
+	int headID = oldHead->id;
+
+	if(waiting->head == waiting->tail) {
+		waiting->head = NULL;
+		waiting->tail = NULL;
 	}
-	else
-		++qHead;
+	else {
+		waiting->head = oldHead->next;
+		waiting->head->pre = NULL;
+	}
+
+	free(oldHead);
 	return headID;
 }
 
-void adjustSJF (Proc *proc[]) {
+void printQueue() {
+	Node *ptr = waiting->head;
+	fprintf(stderr, "Queue: ");
+	while(ptr != NULL) {
+		fprintf(stderr, "%s -> ", proc[ptr->id]->name);
+		ptr = ptr->next;
+	}
+	fprintf(stderr, "\n");
+	return;
+}
+
+void adjustHeadPriority () {
+	if (!emptyQueue()) {
+		setPriority(proc[waiting->head->id]->pid, MID_PRIORITY);
+		if(waiting->head != waiting->tail)
+			setPriority(proc[waiting->head->next->id]->pid, LOW_PRIORITY);
+	}
+	return;
+}
+
+void adjustSJF () {
 	if (!emptyQueue()) {
 		// adjust process SJF order in queue
+		Node *ptr = waiting->tail;
+		while (ptr != waiting->head && proc[ptr->id]->exec < proc[ptr->pre->id]->exec) {
+			int tmpID = ptr->id;
+			ptr->id = ptr->pre->id;
+			ptr->pre->id = tmpID;
 
-		int ptr = qTail;
-		while (ptr != qHead && proc[qwait[ptr]]->exec < proc[qwait[ptr - 1]]->exec) {
-			int temp = qwait[ptr];
-			qwait[ptr] = qwait[ptr - 1];
-			qwait[ptr - 1] = temp;
-			--ptr;
+			ptr = ptr->pre;
 		}
 	}
 	return;

@@ -7,6 +7,8 @@
 #define MID_PRIORITY 50
 #define LOW_PRIORITY 10
 
+#define MAX_PROC 10000
+
 typedef struct {
 	char name[32];
 	int ready;
@@ -14,34 +16,51 @@ typedef struct {
 	pid_t pid;
 } Proc;
 
-int qHead;
-int qTail;
-int qwait[100];
+typedef struct node {
+	int id;
+	struct node *pre;
+	struct node *next;
+} Node;
 
-void swap(Proc **a, Proc **b);
-void sortReady(Proc *proc[], int procNum);
-void sortExec(Proc *proc[], int procNum);
+typedef struct {
+	Node *head;
+	Node *tail;
+} Queue;
+
+Queue *waiting;
+Proc *proc[MAX_PROC];
+
+extern int runningID;	// no process is running
+extern int finishNum;
+
+void childHandler(int signo);
+void setSighandler(int signo);
+
+void swapProc(int a, int b);
+void sortReady(int procNum);
+void sortExec(int procNum);
 
 void setCPU(pid_t pid, int cpu);
 void setPriority(pid_t cpid, int priority);
-void adjustHeadPriority(Proc *proc[]);
 
 void unitTime();
 void child(pid_t pid, int exec);
-void createChild(Proc *proc[], int createNum, int priority);
+void createChild(int createNum, int priority);
 void waitProcess(int procNum);
 bool childEnd (int runEnd, int time);
 
-void printInfo(Proc *proc[], int procNum);
+void printInfo(int procNum);
 
-void FIFO(Proc *proc[], int procNum);
-void SJF(Proc *proc[], int procNum);
+void FIFO(int procNum);
+void SJF(int procNum);
 
 void initQueue();
 bool emptyQueue();
 void inQueue(int procID);
 int deQueue();
+void printQueue();
 
-void adjustSJF (Proc *proc[]);
+void adjustHeadPriority();
+void adjustSJF ();
 
 #endif

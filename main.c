@@ -18,23 +18,21 @@ int main() {
 	scanf("%s", policy);
 	scanf("%d", &procNum);
 
-	Proc *proc[procNum];
-
 	for (int i = 0; i < procNum; i++) {
 		proc[i] = (Proc *)malloc(sizeof(Proc));
 		scanf("%s%d%d", proc[i]->name, &(proc[i]->ready), &(proc[i]->exec));
 	}
 
 	setCPU(0, 0);
-	setPriority(getpid(), 99);
+	setPriority(getpid(), 90);
 
 	if (strncmp(policy, "FIFO", 4) == 0)
-		FIFO(proc, procNum);
+		FIFO(procNum);
 	/*else if (strncmp(policy, "PSJF", 4) == 0)
 		PSJF(proc, procNum);
 	else if (strncmp(policy, "RR", 2) == 0)
 		RR(proc, procNum);*/
 	else
-		SJF(proc, procNum);
+		SJF(procNum);
 	return 0;
 }
